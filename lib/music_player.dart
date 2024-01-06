@@ -3,12 +3,13 @@
 /// @Description:
 import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
-import 'package:intl/intl.dart';
+import 'package:flutter_music_player/screens/user_page.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import 'screens/music_list_page.dart';
+import 'screens/setting_page.dart';
 
 class MusicPlayer extends StatefulWidget {
   const MusicPlayer({Key? key}) : super(key: key);
@@ -29,6 +30,15 @@ class _MusicPlayerState extends State<MusicPlayer> {
 
   int _playIndex = -1;
 
+  int _itemIndex = 0;
+
+  final _pageController = PageController();
+
+  final List<Widget> _pages = [
+    const MusicListPage(),
+    const SettingPage(),
+    const UserPage(),
+  ];
   @override
   void initState() {
     super.initState();
@@ -50,7 +60,6 @@ class _MusicPlayerState extends State<MusicPlayer> {
     });
     // 监听播放进度
     player.positionStream.listen((position) {
-      print(position.inSeconds);
       // 在这里处理播放进度更新
       setState(() {
         this.position = position.inSeconds.toDouble();
@@ -58,7 +67,6 @@ class _MusicPlayerState extends State<MusicPlayer> {
     });
     // 监听播放状态
     player.playerStateStream.listen((state) {
-      print(state);
       // 如果当前的播放完了，就切换下一首
       if (state.processingState == ProcessingState.completed) {
         if (_playIndex < fileList.length - 1) {
@@ -82,148 +90,171 @@ class _MusicPlayerState extends State<MusicPlayer> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0XFFF5F5F5),
-      appBar: AppBar(
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        title: const Text('音乐播放器'),
-        actions: [
-          IconButton(
-            onPressed: () async {
-              FilePickerResult? result =
-                  await FilePicker.platform.pickFiles(allowMultiple: true);
+      backgroundColor: const Color(0XFF173e66),
+      // appBar: AppBar(
+      //   backgroundColor: Theme.of(context).colorScheme.inversePrimary,
+      //   title: const Text('音乐播放器'),
+      //   actions: [
+      //     IconButton(
+      //       onPressed: () async {
+      //         FilePickerResult? result =
+      //             await FilePicker.platform.pickFiles(allowMultiple: true);
 
-              if (result != null) {
-                List<File> files =
-                    result.paths.map((path) => File(path!)).toList();
-                fileList.addAll(files);
-                // 路径存储到缓存中
-                SharedPreferences preferences =
-                    await SharedPreferences.getInstance();
-                preferences.setStringList(
-                    'fileList', fileList.map((e) => e.path).toList());
-                setState(() {});
-              } else {
-                // User canceled the picker
-              }
-            },
-            icon: const Icon(
-              Icons.upload_file,
-            ),
-          )
+      //         if (result != null) {
+      //           List<File> files =
+      //               result.paths.map((path) => File(path!)).toList();
+      //           fileList.addAll(files);
+      //           // 路径存储到缓存中
+      //           SharedPreferences preferences =
+      //               await SharedPreferences.getInstance();
+      //           preferences.setStringList(
+      //               'fileList', fileList.map((e) => e.path).toList());
+      //           setState(() {});
+      //         } else {
+      //           // User canceled the picker
+      //         }
+      //       },
+      //       icon: const Icon(
+      //         Icons.upload_file,
+      //       ),
+      //     )
+      //   ],
+      // ),
+      body: PageView.builder(
+        itemCount: _pages.length,
+        physics: const NeverScrollableScrollPhysics(),
+        controller: _pageController,
+        itemBuilder: (_, index) {
+          return _pages[index];
+        },
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _itemIndex,
+        onTap: (index) {
+          setState(() {
+            _itemIndex = index;
+          });
+          _pageController.jumpToPage(index);
+        },
+        type: BottomNavigationBarType.fixed,
+        items: const [
+          BottomNavigationBarItem(icon: Icon(Icons.music_video), label: '播放列表'),
+          BottomNavigationBarItem(icon: Icon(Icons.settings), label: '设置'),
+          BottomNavigationBarItem(icon: Icon(Icons.info), label: '关于'),
         ],
       ),
-      body: ListView.builder(
-          itemCount: fileList.length,
-          itemBuilder: (_, index) {
-            final itemModel = fileList[index];
-            return GestureDetector(
-              onDoubleTap: () async {
-                final duration = await player.setFilePath(itemModel.path);
-                setState(() {
-                  _playIndex = index;
-                  this.duration = duration!.inSeconds.toDouble();
-                });
-                player.play();
-              },
-              child: Container(
-                margin: const EdgeInsets.only(
-                  top: 10,
-                  left: 10,
-                  right: 10,
-                ),
-                padding: const EdgeInsets.all(10),
-                height: 60,
-                alignment: Alignment.centerLeft,
-                decoration: BoxDecoration(
-                  color: _playIndex == index ? Colors.indigo : Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Colors.white,
-                      offset: Offset(1, 1),
-                      blurRadius: 1,
-                      spreadRadius: 1,
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      itemModel.path
-                          .substring(itemModel.path.lastIndexOf('/') + 1),
-                      style: TextStyle(
-                        color:
-                            _playIndex == index ? Colors.white : Colors.black,
-                      ),
-                    ),
-                    if (_playIndex == index)
-                      const SpinKitWave(
-                        color: Colors.white,
-                        size: 30.0,
-                      ),
-                  ],
-                ),
-              ),
-            );
-          }),
-      bottomNavigationBar: BottomAppBar(
-        padding: EdgeInsets.zero,
-        child: Container(
-          // width: double.infinity,
-          alignment: Alignment.center,
-          width: MediaQuery.of(context).size.width,
-          padding: const EdgeInsets.symmetric(
-            horizontal: 10,
-          ),
-          decoration: BoxDecoration(
-            color: Colors.indigo.shade100,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Column(
-            children: [
-              Row(
-                // mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  IconButton(
-                    onPressed: () {
-                      // player.play();
-                      if (!player.playing) {
-                        player.play();
-                      } else {
-                        player.pause();
-                      }
-                    },
-                    icon: Icon(
-                      !player.playing ? Icons.play_arrow : Icons.pause,
-                    ),
-                  ),
-                  if (duration > 0.0)
-                    Expanded(
-                      child: Slider(
-                        activeColor: Colors.indigo,
-                        // max: duration.toDouble(),
-                        value: calculateProgress(position, duration),
-                        onChanged: (value) {
-                          position = value * duration;
-                          // value 0.0 - 1.0 百分比
-                          player.seek(Duration(seconds: position.toInt()));
-                          // setState(() {});
-                          // player.seek(Duration(seconds: value.toInt()));
-                        },
-                      ),
-                    ),
-                  if (duration > 0)
-                    Text(
-                        '${DateFormat('mm:ss').format(DateTime(0).add(Duration(seconds: position.toInt())))}/ ${DateFormat('mm:ss').format(
-                      DateTime(0).add(Duration(seconds: duration.toInt())),
-                    )}'),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
+      // body: ListView.builder(
+      //     itemCount: fileList.length,
+      //     itemBuilder: (_, index) {
+      //       final itemModel = fileList[index];
+      //       return GestureDetector(
+      //         onDoubleTap: () async {
+      //           final duration = await player.setFilePath(itemModel.path);
+      //           setState(() {
+      //             _playIndex = index;
+      //             this.duration = duration!.inSeconds.toDouble();
+      //           });
+      //           player.play();
+      //         },
+      //         child: Container(
+      //           margin: const EdgeInsets.only(
+      //             top: 10,
+      //             left: 10,
+      //             right: 10,
+      //           ),
+      //           padding: const EdgeInsets.all(10),
+      //           height: 60,
+      //           alignment: Alignment.centerLeft,
+      //           decoration: BoxDecoration(
+      //             color: _playIndex == index ? Colors.indigo : Colors.white,
+      //             borderRadius: BorderRadius.circular(10),
+      //             boxShadow: const [
+      //               BoxShadow(
+      //                 color: Colors.white,
+      //                 offset: Offset(1, 1),
+      //                 blurRadius: 1,
+      //                 spreadRadius: 1,
+      //               ),
+      //             ],
+      //           ),
+      //           child: Row(
+      //             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      //             children: [
+      //               Text(
+      //                 itemModel.path
+      //                     .substring(itemModel.path.lastIndexOf('/') + 1),
+      //                 style: TextStyle(
+      //                   color:
+      //                       _playIndex == index ? Colors.white : Colors.black,
+      //                 ),
+      //               ),
+      //               if (_playIndex == index)
+      //                 const SpinKitWave(
+      //                   color: Colors.white,
+      //                   size: 30.0,
+      //                 ),
+      //             ],
+      //           ),
+      //         ),
+      //       );
+      //     }),
+      // bottomNavigationBar: BottomAppBar(
+      //   padding: EdgeInsets.zero,
+      //   child: Container(
+      //     // width: double.infinity,
+      //     alignment: Alignment.center,
+      //     width: MediaQuery.of(context).size.width,
+      //     padding: const EdgeInsets.symmetric(
+      //       horizontal: 10,
+      //     ),
+      //     decoration: BoxDecoration(
+      //       color: Colors.indigo.shade100,
+      //       borderRadius: BorderRadius.circular(10),
+      //     ),
+      //     child: Column(
+      //       children: [
+      //         Row(
+      //           // mainAxisAlignment: MainAxisAlignment.center,
+      //           children: [
+      //             IconButton(
+      //               onPressed: () {
+      //                 // player.play();
+      //                 if (!player.playing) {
+      //                   player.play();
+      //                 } else {
+      //                   player.pause();
+      //                 }
+      //               },
+      //               icon: Icon(
+      //                 !player.playing ? Icons.play_arrow : Icons.pause,
+      //               ),
+      //             ),
+      //             if (duration > 0.0)
+      //               Expanded(
+      //                 child: Slider(
+      //                   activeColor: Colors.indigo,
+      //                   // max: duration.toDouble(),
+      //                   value: calculateProgress(position, duration),
+      //                   onChanged: (value) {
+      //                     position = value * duration;
+      //                     // value 0.0 - 1.0 百分比
+      //                     player.seek(Duration(seconds: position.toInt()));
+      //                     // setState(() {});
+      //                     // player.seek(Duration(seconds: value.toInt()));
+      //                   },
+      //                 ),
+      //               ),
+      //             if (duration > 0)
+      //               Text(
+      //                   '${DateFormat('mm:ss').format(DateTime(0).add(Duration(seconds: position.toInt())))}/ ${DateFormat('mm:ss').format(
+      //                 DateTime(0).add(Duration(seconds: duration.toInt())),
+      //               )}'),
+      //           ],
+      //         ),
+      //       ],
+      //     ),
+      //   ),
+      // ),
     );
   }
 
