@@ -5,7 +5,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_music_player/screens/user_page.dart';
-import 'package:just_audio/just_audio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/music_list_page.dart';
@@ -18,19 +17,19 @@ class MusicPlayer extends StatefulWidget {
 }
 
 class _MusicPlayerState extends State<MusicPlayer> {
-  final player = AudioPlayer(); // Create a player
+  // final player = AudioPlayer(); // Create a player
 
   double duration = 0.0;
   double position = 0.0;
 
   /// 播放状态
-  ProcessingState playerState = ProcessingState.idle;
+  // ProcessingState playerState = ProcessingState.idle;
 
   List<File> fileList = [];
 
-  int _playIndex = -1;
+  final int _playIndex = -1;
 
-  int _itemIndex = 0;
+  final int _itemIndex = 0;
 
   final _pageController = PageController();
 
@@ -42,50 +41,50 @@ class _MusicPlayerState extends State<MusicPlayer> {
   @override
   void initState() {
     super.initState();
-    init();
+    // init();
   }
 
-  void init() async {
-    // final duration = await player.setUrl(
-    //     'https://bigshot.oss-cn-shanghai.aliyuncs.com/music/Hotel%20California%201994.mp3');
-    // setState(() {
-    //   this.duration = duration!;
-    // });
-    player.durationStream.listen((newDuration) {
-      if (newDuration != null) {
-        setState(() {
-          duration = newDuration.inSeconds.toDouble();
-        });
-      }
-    });
-    // 监听播放进度
-    player.positionStream.listen((position) {
-      // 在这里处理播放进度更新
-      setState(() {
-        this.position = position.inSeconds.toDouble();
-      });
-    });
-    // 监听播放状态
-    player.playerStateStream.listen((state) {
-      // 如果当前的播放完了，就切换下一首
-      if (state.processingState == ProcessingState.completed) {
-        if (_playIndex < fileList.length - 1) {
-          _playIndex++;
-          player.setFilePath(fileList[_playIndex].path);
-          player.play();
-        }
-      }
-      // 在这里处理播放状态更新
-      setState(() {
-        playerState = state.processingState;
-      });
-    });
-    // 从缓存获取fileList
-    SharedPreferences preferences = await SharedPreferences.getInstance();
-    List<String>? res = preferences.getStringList('fileList');
-    fileList.addAll(res?.map((e) => File(e)).toList() ?? []);
-    setState(() {});
-  }
+  // void init() async {
+  //   // final duration = await player.setUrl(
+  //   //     'https://bigshot.oss-cn-shanghai.aliyuncs.com/music/Hotel%20California%201994.mp3');
+  //   // setState(() {
+  //   //   this.duration = duration!;
+  //   // });
+  //   player.durationStream.listen((newDuration) {
+  //     if (newDuration != null) {
+  //       setState(() {
+  //         duration = newDuration.inSeconds.toDouble();
+  //       });
+  //     }
+  //   });
+  //   // 监听播放进度
+  //   player.positionStream.listen((position) {
+  //     // 在这里处理播放进度更新
+  //     setState(() {
+  //       this.position = position.inSeconds.toDouble();
+  //     });
+  //   });
+  //   // 监听播放状态
+  //   player.playerStateStream.listen((state) {
+  //     // 如果当前的播放完了，就切换下一首
+  //     if (state.processingState == ProcessingState.completed) {
+  //       if (_playIndex < fileList.length - 1) {
+  //         _playIndex++;
+  //         player.setFilePath(fileList[_playIndex].path);
+  //         player.play();
+  //       }
+  //     }
+  //     // 在这里处理播放状态更新
+  //     setState(() {
+  //       playerState = state.processingState;
+  //     });
+  //   });
+  //   // 从缓存获取fileList
+  //   SharedPreferences preferences = await SharedPreferences.getInstance();
+  //   List<String>? res = preferences.getStringList('fileList');
+  //   fileList.addAll(res?.map((e) => File(e)).toList() ?? []);
+  //   setState(() {});
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -128,21 +127,21 @@ class _MusicPlayerState extends State<MusicPlayer> {
           return _pages[index];
         },
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _itemIndex,
-        onTap: (index) {
-          setState(() {
-            _itemIndex = index;
-          });
-          _pageController.jumpToPage(index);
-        },
-        type: BottomNavigationBarType.fixed,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.music_video), label: '播放列表'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: '设置'),
-          BottomNavigationBarItem(icon: Icon(Icons.info), label: '关于'),
-        ],
-      ),
+      // bottomNavigationBar: BottomNavigationBar(
+      //   currentIndex: _itemIndex,
+      //   onTap: (index) {
+      //     setState(() {
+      //       _itemIndex = index;
+      //     });
+      //     _pageController.jumpToPage(index);
+      //   },
+      //   type: BottomNavigationBarType.fixed,
+      //   items: const [
+      //     BottomNavigationBarItem(icon: Icon(Icons.music_video), label: '播放列表'),
+      //     BottomNavigationBarItem(icon: Icon(Icons.settings), label: '设置'),
+      //     BottomNavigationBarItem(icon: Icon(Icons.info), label: '关于'),
+      //   ],
+      // ),
       // body: ListView.builder(
       //     itemCount: fileList.length,
       //     itemBuilder: (_, index) {

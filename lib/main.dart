@@ -30,7 +30,7 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(
           seedColor: Colors.indigo,
         ),
-        useMaterial3: true,
+        useMaterial3: false,
       ),
       home: const MusicPlayer(),
     );
