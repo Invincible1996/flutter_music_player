@@ -9,6 +9,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../extensions/string_extension.dart';
 
 class MusicListPage extends StatefulWidget {
   const MusicListPage({Key? key}) : super(key: key);
@@ -119,6 +120,17 @@ class _MusicListPageState extends State<MusicListPage>
         title: const Text('音乐列表', style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0XFF303030),
         actions: [
+          // 手动清除缓存
+          IconButton(
+            onPressed: () async {
+              SharedPreferences preferences =
+                  await SharedPreferences.getInstance();
+              preferences.remove('fileList');
+              fileList.clear();
+              setState(() {});
+            },
+            icon: const Icon(Icons.delete_forever, color: Colors.white),
+          ),
           IconButton(
             onPressed: () async {
               FilePickerResult? result =
@@ -183,8 +195,7 @@ class _MusicListPageState extends State<MusicListPage>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      itemModel.path
-                          .substring(itemModel.path.lastIndexOf('/') + 1),
+                      itemModel.path.fileNameWithoutExtension,
                       style: const TextStyle(
                         color: Colors.white,
                       ),
