@@ -5,7 +5,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_music_player/screens/user_page.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import 'screens/music_list_page.dart';
 import 'screens/setting_page.dart';
@@ -26,10 +25,6 @@ class _MusicPlayerState extends State<MusicPlayer> {
   // ProcessingState playerState = ProcessingState.idle;
 
   List<File> fileList = [];
-
-  final int _playIndex = -1;
-
-  final int _itemIndex = 0;
 
   final _pageController = PageController();
 

@@ -7,8 +7,8 @@ import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
 import '../extensions/string_extension.dart';
 
 class MusicListPage extends StatefulWidget {
@@ -60,49 +60,18 @@ class _MusicListPageState extends State<MusicListPage>
     player.onPositionChanged.listen((position) {
       setState(() {
         this.position = position;
+        // 播放完开始播放下一曲
+        if (position.inSeconds == duration.inSeconds) {
+          if (_playIndex < fileList.length - 1) {
+            _playIndex++;
+            player
+                .play(DeviceFileSource(fileList[_playIndex].path))
+                .then((value) => setState(() {}));
+          }
+        }
       });
     });
 
-    // player.play();
-    // setState(() {
-    //   this.duration = duration!;
-    // });
-    // 从fileList中获取第一首歌曲
-
-    // player.durationStream.listen((newDuration) {
-    //   if (newDuration != null) {
-    //     setState(() {
-    //       duration = newDuration;
-    //     });
-    //   }
-    // });
-    // // 监听播放进度
-    // player.positionStream.listen((position) {
-    //   // 在这里处理播放进度更新
-    //   setState(() {
-    //     this.position = position;
-    //   });
-    // });
-    // // 监听播放状态
-    // player.playerStateStream.listen((state) {
-    //   // 如果当前的播放完了，就切换下一首
-    //   if (state.processingState == ProcessingState.completed) {
-    //     if (_playIndex < fileList.length - 1) {
-    //       _playIndex++;
-    //       player.setFilePath(fileList[_playIndex].path);
-    //       player.play();
-    //       _scrollController.animateTo(
-    //         60 * (_playIndex + 1),
-    //         duration: const Duration(milliseconds: 500),
-    //         curve: Curves.ease,
-    //       );
-    //     }
-    //   }
-    //   // 在这里处理播放状态更新
-    //   setState(() {
-    //     playerState = state.processingState;
-    //   });
-    // });
     // 从缓存获取fileList
     SharedPreferences preferences = await SharedPreferences.getInstance();
     List<String>? res = preferences.getStringList('fileList');
@@ -116,18 +85,46 @@ class _MusicListPageState extends State<MusicListPage>
   Widget build(BuildContext context) {
     super.build(context);
     return Scaffold(
+      backgroundColor: const Color(0XFF252525),
       appBar: AppBar(
         title: const Text('音乐列表', style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0XFF303030),
         actions: [
           // 手动清除缓存
           IconButton(
-            onPressed: () async {
-              SharedPreferences preferences =
-                  await SharedPreferences.getInstance();
-              preferences.remove('fileList');
-              fileList.clear();
-              setState(() {});
+            onPressed: () {
+              // show dilaog to confirm
+
+              showDialog(
+                  context: context,
+                  builder: (context) {
+                    return AlertDialog(
+                      title: const Text('清除缓存'),
+                      content: const Text('确定要清除缓存吗？'),
+                      actions: [
+                        TextButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                          },
+                          child: const Text('取消'),
+                        ),
+                        TextButton(
+                          onPressed: () async {
+                            SharedPreferences preferences =
+                                await SharedPreferences.getInstance();
+                            preferences.remove('fileList');
+                            fileList.clear();
+                            // 播放时间重置 为0 歌曲停止播放
+                            position = Duration.zero;
+                            player.stop();
+                            setState(() {});
+                            Navigator.pop(context);
+                          },
+                          child: const Text('确定'),
+                        ),
+                      ],
+                    );
+                  });
             },
             icon: const Icon(Icons.delete_forever, color: Colors.white),
           ),
@@ -155,7 +152,7 @@ class _MusicListPageState extends State<MusicListPage>
         ],
       ),
       body: Container(
-        color: Colors.white,
+        color: const Color(0XFF252525),
         child: ListView.builder(
           controller: _scrollController,
           itemCount: fileList.length,
@@ -179,8 +176,10 @@ class _MusicListPageState extends State<MusicListPage>
                 padding: const EdgeInsets.all(10),
                 alignment: Alignment.centerLeft,
                 decoration: BoxDecoration(
-                    color: const Color(0XFF303030),
-                    borderRadius: BorderRadius.circular(10),
+                    color: index.isEven
+                        ? const Color(0XFF292929)
+                        : const Color(0XFF252525),
+                    // borderRadius: BorderRadius.circular(10),
                     boxShadow: const [
                       BoxShadow(
                         color: Color(0XFF303030),
@@ -189,22 +188,36 @@ class _MusicListPageState extends State<MusicListPage>
                         spreadRadius: 1,
                       )
                     ]),
-                margin: const EdgeInsets.all(10),
-                height: 60,
+                // margin: const EdgeInsets.all(10),
+                // height: 60,
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
+                    _playIndex == index
+                        ? const Icon(
+                            Icons.volume_down,
+                            color: Colors.red,
+                          )
+                        : Text(
+                            '0${index + 1}',
+                            style: const TextStyle(
+                              color: Colors.white,
+                            ),
+                          ),
+                    const SizedBox(
+                      width: 10,
+                    ),
                     Text(
                       itemModel.path.fileNameWithoutExtension,
                       style: const TextStyle(
                         color: Colors.white,
                       ),
                     ),
-                    if (_playIndex == index)
-                      const SpinKitWave(
-                        color: Colors.white,
-                        size: 30.0,
-                      ),
+                    // if (_playIndex == index)
+                    //   const SpinKitWave(
+                    //     color: Colors.white,
+                    //     size: 30.0,
+                    //   ),
                     // const Icon(
                     //   Icons.more_vert,
                     //   color: Colors.white,
@@ -363,4 +376,8 @@ class _MusicListPageState extends State<MusicListPage>
 
   @override
   bool get wantKeepAlive => true;
+}
+
+int add(int a, int b) {
+  return a + b;
 }
