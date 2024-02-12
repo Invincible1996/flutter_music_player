@@ -7,7 +7,6 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_music_player/models/music_file.dart';
 import 'package:flutter_music_player/styles/colors.dart';
-import 'package:flutter_music_player/widgets/circle_avatar_rotate_animation.dart';
 import 'package:text_scroll/text_scroll.dart';
 
 class CustomBottomAppBar extends StatelessWidget {

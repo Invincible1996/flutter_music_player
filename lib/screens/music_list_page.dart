@@ -1,9 +1,6 @@
 /// @Author: kevin
 /// @Date: 2024-01-05 23:01:39
 /// @Description:
-import 'dart:io';
-
-import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_music_player/styles/colors.dart';

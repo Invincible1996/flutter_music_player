@@ -1,14 +1,17 @@
+/// @Author: kevin
+/// @Date: 2024-02-12 20:25:07
+/// @Description:
 import 'package:flutter/material.dart';
 
-class InfiniteRotationAnimation extends StatefulWidget {
-  const InfiniteRotationAnimation({super.key});
-
+class CircleAvatarRotateAnimation extends StatefulWidget {
+  const CircleAvatarRotateAnimation({Key? key}) : super(key: key);
   @override
-  _InfiniteRotationAnimationState createState() =>
-      _InfiniteRotationAnimationState();
+  State<CircleAvatarRotateAnimation> createState() =>
+      _CircleAvatarRotateAnimationState();
 }
 
-class _InfiniteRotationAnimationState extends State<InfiniteRotationAnimation>
+class _CircleAvatarRotateAnimationState
+    extends State<CircleAvatarRotateAnimation>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
 

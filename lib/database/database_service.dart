@@ -1,6 +1,6 @@
-import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
+import 'package:path/path.dart';
 
 /// @Author: kevin
 /// @Date: 2024-02-11
@@ -17,17 +17,12 @@ class DatabaseService {
   //fullPath
   Future<String> get fullPath async {
     const name = 'music_player.db';
-    // final path = await getDatabasesPath();
-    // print(path);
-    // set to andriod sdcard
     final directory = await getExternalStorageDirectory();
-    // return directory!.path;
     return join(directory!.path, name);
   }
 
   Future<Database> _initialize() async {
     final path = await fullPath;
-    print(path);
     var database = await openDatabase(
       path,
       version: 1,

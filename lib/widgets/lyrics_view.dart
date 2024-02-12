@@ -32,7 +32,6 @@ class _LyricsViewState extends State<LyricsView> {
         lyricsList.add((time, content));
       }
     }
-    print(lyricsList);
   }
 
   @override
