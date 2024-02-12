@@ -5,11 +5,15 @@ import 'dart:io';
 
 import 'package:audio_video_progress_bar/audio_video_progress_bar.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:on_audio_query/on_audio_query.dart';
+import 'package:text_scroll/text_scroll.dart';
 
+import '../database/music_db.dart';
 import '../extensions/string_extension.dart';
+import '../models/music_file.dart';
+import '../widgets/circle_avatar_rotate_animation.dart';
+import '../widgets/lyrics_view.dart';
 
 class MusicListPage extends StatefulWidget {
   const MusicListPage({Key? key}) : super(key: key);
@@ -26,18 +30,34 @@ class _MusicListPageState extends State<MusicListPage>
   /// 播放状态
   PlayerState playerState = PlayerState.stopped;
 
-  List<File> fileList = [];
+  List<MusicFile> fileList = [];
 
   int _playIndex = 0;
 
   final ScrollController _scrollController = ScrollController();
 
   double _volume = 1.0;
+  final OnAudioQuery _audioQuery = OnAudioQuery();
+  //
+  final musicDB = MusicDb();
 
   @override
   void initState() {
     super.initState();
     init();
+    getMusicFiles();
+    // someName();
+  }
+
+  void getMusicFiles() async {
+    final res = await musicDB.getMusicFiles();
+    print(res);
+    if (res.isEmpty) {
+      someName();
+    } else {
+      fileList.addAll(res.map((e) => MusicFile.fromJson(e)).toList());
+    }
+    setState(() {});
   }
 
   void init() async {
@@ -71,13 +91,6 @@ class _MusicListPageState extends State<MusicListPage>
         }
       });
     });
-
-    // 从缓存获取fileList
-    SharedPreferences preferences = await SharedPreferences.getInstance();
-    List<String>? res = preferences.getStringList('fileList');
-    fileList.addAll(res?.map((e) => File(e)).toList() ?? []);
-    // player.setFilePath(fileList[_playIndex].path);
-    // player.play();
     setState(() {});
   }
 
@@ -86,69 +99,57 @@ class _MusicListPageState extends State<MusicListPage>
     super.build(context);
     return Scaffold(
       backgroundColor: const Color(0XFF252525),
+      drawer: Drawer(
+        child: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            const DrawerHeader(
+              decoration: BoxDecoration(
+                color: Colors.blue,
+              ),
+              child: Text('Drawer Header'),
+            ),
+            ListTile(
+              title: const Text('Item 1'),
+              onTap: () {
+                // Update the state of the app
+                // ...
+                // Then close the drawer
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              title: const Text('Item 2'),
+              onTap: () {
+                // Update the state of the app
+                // ...
+                // Then close the drawer
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
       appBar: AppBar(
         title: const Text('音乐列表', style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0XFF303030),
-        actions: [
-          // 手动清除缓存
-          IconButton(
-            onPressed: () {
-              // show dilaog to confirm
+        actions: const [
+          // IconButton(
+          //   onPressed: () async {
+          //     FilePickerResult? result =
+          //         await FilePicker.platform.pickFiles(allowMultiple: true);
+          //     if (result != null) {
+          //       List<File> files =
+          //           result.paths.map((path) => File(path!)).toList();
 
-              showDialog(
-                  context: context,
-                  builder: (context) {
-                    return AlertDialog(
-                      title: const Text('清除缓存'),
-                      content: const Text('确定要清除缓存吗？'),
-                      actions: [
-                        TextButton(
-                          onPressed: () {
-                            Navigator.pop(context);
-                          },
-                          child: const Text('取消'),
-                        ),
-                        TextButton(
-                          onPressed: () async {
-                            SharedPreferences preferences =
-                                await SharedPreferences.getInstance();
-                            preferences.remove('fileList');
-                            fileList.clear();
-                            // 播放时间重置 为0 歌曲停止播放
-                            position = Duration.zero;
-                            player.stop();
-                            setState(() {});
-                            Navigator.pop(context);
-                          },
-                          child: const Text('确定'),
-                        ),
-                      ],
-                    );
-                  });
-            },
-            icon: const Icon(Icons.delete_forever, color: Colors.white),
-          ),
-          IconButton(
-            onPressed: () async {
-              FilePickerResult? result =
-                  await FilePicker.platform.pickFiles(allowMultiple: true);
-
-              if (result != null) {
-                List<File> files =
-                    result.paths.map((path) => File(path!)).toList();
-                fileList.addAll(files);
-                // 路径存储到缓存中
-                SharedPreferences preferences =
-                    await SharedPreferences.getInstance();
-                preferences.setStringList(
-                    'fileList', fileList.map((e) => e.path).toList());
-                setState(() {});
-              } else {
-                // User canceled the picker
-              }
-            },
-            icon: const Icon(Icons.file_open, color: Colors.white),
-          )
+          //       // _inserFilesToDB(files);
+          //       setState(() {});
+          //     } else {
+          //       // User canceled the picker
+          //     }
+          //   },
+          //   icon: const Icon(Icons.file_open, color: Colors.white),
+          // )
         ],
       ),
       body: Container(
@@ -160,12 +161,6 @@ class _MusicListPageState extends State<MusicListPage>
             final itemModel = fileList[index];
             return GestureDetector(
               onTap: () async {
-                // Navigator.push(
-                //     context,
-                //     MaterialPageRoute(
-                //       builder: (_) => const PlayerPage(),
-                //     ));
-                // final duration = await player.setFilePath(itemModel.path);
                 setState(() {
                   _playIndex = index;
                 });
@@ -174,6 +169,7 @@ class _MusicListPageState extends State<MusicListPage>
               },
               child: Container(
                 padding: const EdgeInsets.all(10),
+                // height: 60,
                 alignment: Alignment.centerLeft,
                 decoration: BoxDecoration(
                     color: index.isEven
@@ -193,35 +189,83 @@ class _MusicListPageState extends State<MusicListPage>
                 child: Row(
                   // mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _playIndex == index
-                        ? const Icon(
-                            Icons.volume_down,
-                            color: Colors.red,
-                          )
-                        : Text(
-                            '0${index + 1}',
+                    if (itemModel.albumArt != null)
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(5),
+                        child: Image.memory(
+                          itemModel.albumArt!,
+                          width: 40,
+                        ),
+                      ),
+                    const SizedBox(
+                      width: 10,
+                    ),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            itemModel.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: const TextStyle(
                               color: Colors.white,
                             ),
                           ),
-                    const SizedBox(
-                      width: 10,
-                    ),
-                    Text(
-                      itemModel.path.fileNameWithoutExtension,
-                      style: const TextStyle(
-                        color: Colors.white,
+                          const SizedBox(
+                            height: 5,
+                          ),
+                          Text(
+                            itemModel.artist,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    // if (_playIndex == index)
-                    //   const SpinKitWave(
-                    //     color: Colors.white,
-                    //     size: 30.0,
-                    //   ),
-                    // const Icon(
-                    //   Icons.more_vert,
-                    //   color: Colors.white,
-                    // ),
+                    const Spacer(),
+                    IconButton(
+                      onPressed: () {
+                        showModalBottomSheet(
+                            context: context,
+                            builder: (context) {
+                              return Container(
+                                height: 200,
+                                color: Colors.white,
+                                child: Column(
+                                  children: [
+                                    ListTile(
+                                      title: const Text('删除'),
+                                      onTap: () {
+                                        // confirm delete 数据库
+                                        musicDB.deleteMusicFile(itemModel.id);
+                                        setState(() {});
+                                        Navigator.pop(context);
+                                      },
+                                    ),
+                                    const Divider(
+                                      height: 1,
+                                    ),
+                                    ListTile(
+                                      title: const Text('取消'),
+                                      onTap: () {
+                                        Navigator.pop(context);
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              );
+                            });
+                      },
+                      icon: const Icon(
+                        Icons.more_vert,
+                        color: Colors.white,
+                      ),
+                    )
                   ],
                 ),
               ),
@@ -260,14 +304,121 @@ class _MusicListPageState extends State<MusicListPage>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   //当前歌曲的名称
-                  // Text(
-                  //   fileList[_playIndex].path.substring(
-                  //       fileList[_playIndex].path.lastIndexOf('/') + 1),
-                  //   style: const TextStyle(
-                  //     color: Colors.green,
-                  //   ),
-                  // ),
-                  const Spacer(),
+                  if (fileList.isNotEmpty)
+                    Expanded(
+                      child: Row(
+                        children: [
+                          // 头像
+                          if (fileList[_playIndex].albumArt != null)
+                            GestureDetector(
+                              onTap: () {
+                                // 播放详情页 底部弹出 占满屏幕
+                                showBottomSheet(
+                                  context: context,
+                                  builder: (context) {
+                                    return Container(
+                                      height:
+                                          MediaQuery.of(context).size.height,
+                                      color: const Color(0xff252525),
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              IconButton(
+                                                onPressed: () {
+                                                  Navigator.pop(context);
+                                                },
+                                                icon: const Icon(
+                                                  Icons.close,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                              const Spacer(),
+                                              IconButton(
+                                                onPressed: () {},
+                                                icon: const Icon(
+                                                  Icons.more_vert,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          // 旋转的头像动画 旋转的时候头像不变
+                                          const Row(
+                                            children: [
+                                              InfiniteRotationAnimation(),
+                                              SizedBox(
+                                                width: 20,
+                                              ),
+                                              // SizedBox(
+                                              //   width: 400,
+                                              //   height: 400,
+                                              //   child: LyricsView(),
+                                              // )
+                                            ],
+                                          )
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                  shape: const RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.only(
+                                        topLeft: Radius.circular(0.0),
+                                        topRight: Radius.circular(0.0)),
+                                  ),
+                                  backgroundColor: Colors.transparent,
+                                );
+                              },
+                              child: ClipOval(
+                                child: Image.memory(
+                                  fileList[_playIndex].albumArt!,
+                                  width: 40,
+                                ),
+                              ),
+                            ),
+                          const SizedBox(
+                            width: 10,
+                          ),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                TextScroll(
+                                  fileList[_playIndex].title,
+                                  mode: TextScrollMode.bouncing,
+                                  velocity: const Velocity(
+                                      pixelsPerSecond: Offset(150, 0)),
+                                  delayBefore:
+                                      const Duration(milliseconds: 500),
+                                  numberOfReps: 5,
+                                  pauseBetween:
+                                      const Duration(milliseconds: 50),
+                                  style: const TextStyle(color: Colors.green),
+                                  textAlign: TextAlign.right,
+                                  selectable: true,
+                                ),
+                                Text(
+                                  fileList[_playIndex].artist,
+                                  style: const TextStyle(
+                                    color: Colors.grey,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          // Text(
+                          //   fileList[_playIndex].title,
+                          //   style: const TextStyle(
+                          //     color: Colors.green,
+                          //   ),
+                          // ),
+                        ],
+                      ),
+                    ),
+                  // const Spacer(),
                   // 上一曲
                   IconButton(
                     onPressed: () {
@@ -275,15 +426,13 @@ class _MusicListPageState extends State<MusicListPage>
                         _playIndex--;
                         player
                             .play(DeviceFileSource(fileList[_playIndex].path));
-                        // player.play();
-                        // setState(() {});
                       }
                     },
                     icon: const Icon(
                       Icons.skip_previous,
                     ),
                   ),
-                  FloatingActionButton(
+                  IconButton(
                       onPressed: () {
                         if (player.state == PlayerState.playing) {
                           player.pause();
@@ -293,7 +442,7 @@ class _MusicListPageState extends State<MusicListPage>
                         }
                         setState(() {});
                       },
-                      child: Icon(
+                      icon: Icon(
                         playerState != PlayerState.playing
                             ? Icons.play_arrow
                             : Icons.pause,
@@ -314,31 +463,33 @@ class _MusicListPageState extends State<MusicListPage>
                       Icons.skip_next,
                     ),
                   ),
-                  const Spacer(),
-                  IconButton(
-                      onPressed: () {
-                        setState(() {
-                          _volume = _volume == 0 ? 1 : 0;
-                        });
-                        player.setVolume(_volume);
-                      },
-                      icon: Icon(
-                        _volume == 0
-                            ? Icons.volume_off
-                            : Icons.volume_up_rounded,
-                      )),
-                  SizedBox(
-                    width: 120,
-                    child: Slider(
-                      value: _volume,
-                      onChanged: (value) {
-                        setState(() {
-                          _volume = value;
-                        });
-                        player.setVolume(_volume);
-                      },
+                  // const Spacer(),
+                  if (!Platform.isAndroid)
+                    IconButton(
+                        onPressed: () {
+                          setState(() {
+                            _volume = _volume == 0 ? 1 : 0;
+                          });
+                          player.setVolume(_volume);
+                        },
+                        icon: Icon(
+                          _volume == 0
+                              ? Icons.volume_off
+                              : Icons.volume_up_rounded,
+                        )),
+                  if (!Platform.isAndroid)
+                    SizedBox(
+                      width: 120,
+                      child: Slider(
+                        value: _volume,
+                        onChanged: (value) {
+                          setState(() {
+                            _volume = value;
+                          });
+                          player.setVolume(_volume);
+                        },
+                      ),
                     ),
-                  ),
                 ],
               ),
               const SizedBox(
@@ -376,8 +527,69 @@ class _MusicListPageState extends State<MusicListPage>
 
   @override
   bool get wantKeepAlive => true;
-}
 
-int add(int a, int b) {
-  return a + b;
+  void _inserFilesToDB(List<File> files) async {
+    for (var file in files) {
+      await musicDB.createMusicFile(
+        {
+          'title': file.path.fileNameWithoutExtension,
+          'artist': '未知',
+          'album': '未知',
+          'albumArt':
+              'https://bigshot.oss-cn-shanghai.aliyuncs.com/nba/bos.png',
+          'path': file.path,
+          'createAt': DateTime.now().toString(),
+          'updateAt': DateTime.now().toString(),
+        },
+      );
+    }
+    getMusicFiles();
+  }
+
+  someName() async {
+    // request permission
+    _audioQuery.permissionsStatus;
+    if (await _audioQuery.permissionsStatus()) {
+      // Query Audios
+      List<SongModel> songs = await _audioQuery.querySongs();
+
+      for (var song in songs) {
+        // queryArtwork
+        final albumArt =
+            await _audioQuery.queryArtwork(song.id, ArtworkType.AUDIO);
+        print(albumArt);
+        // insert to db
+        await musicDB.createMusicFile(
+          {
+            'title': song.title,
+            'artist': song.artist ?? '未知',
+            'album': song.album ?? '未知',
+            'albumArt': albumArt,
+            'path': song.data,
+            'createAt': DateTime.now().toString(),
+            'updateAt': DateTime.now().toString(),
+          },
+        );
+        // fileList.add(
+        //   MusicFile(
+        //     id: song.id,
+        //     title: song.title,
+        //     artist: song.artist ?? '未知',
+        //     album: song.album ?? '未知',
+        //     albumArt: albumArt,
+        //     path: song.data,
+        //     createAt: DateTime.now().toString(),
+        //   ),
+        // );
+      }
+      getMusicFiles();
+      setState(() {});
+    } else {
+      // request permission
+      await _audioQuery.permissionsRequest();
+    }
+    // Query Audios
+    // List<AlbumModel> audios = await _audioQuery.queryAlbums();
+    // print(audios);
+  }
 }

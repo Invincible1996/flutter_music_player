@@ -1,0 +1,6 @@
+{
+  "description": "此文件由va-swagger-generator生成, 请勿改动或删除",
+  "dirByRoot": "/src",
+  "workDir": "services",
+  "contracts": []
+}
