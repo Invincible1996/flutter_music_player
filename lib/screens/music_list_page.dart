@@ -1,4 +1,4 @@
-/// @Author: kevin
+/// @Author: kevins
 /// @Date: 2024-01-05 23:01:39
 /// @Description:
 import 'package:audioplayers/audioplayers.dart';
@@ -35,6 +35,9 @@ class _MusicListPageState extends State<MusicListPage>
   final OnAudioQuery _audioQuery = OnAudioQuery();
   //
   final musicDB = MusicDb();
+
+  // 音乐扫描状态
+  bool isScanning = false;
 
   @override
   void initState() {
@@ -131,37 +134,41 @@ class _MusicListPageState extends State<MusicListPage>
           ),
         ],
       ),
-      body: Container(
-        color: const Color(0XFF252525),
-        child: fileList.isEmpty
-            ? const Center(
-                child: CircularProgressIndicator(),
-              )
-            : ListView.builder(
-                controller: _scrollController,
-                itemCount: fileList.length,
-                itemBuilder: (_, index) {
-                  final itemModel = fileList[index];
-                  return MusicListItem(
-                    isPlaying: playIndex == index,
-                    index: index,
-                    onTap: () {
-                      setState(() {
-                        playIndex = index;
-                      });
-                      player.play(DeviceFileSource(itemModel.path));
-                    },
-                    title: itemModel.title,
-                    artist: itemModel.artist,
-                    albumArt: itemModel.albumArt,
-                    onDelete: () {
-                      musicDB.deleteMusicFile(itemModel.id);
-                      setState(() {});
-                    },
-                  );
-                },
-              ),
-      ),
+      body: isScanning
+          ? const Center(
+              child: CircularProgressIndicator(),
+            )
+          : Container(
+              color: const Color(0XFF252525),
+              child: fileList.isEmpty
+                  ? const Center(
+                      child: CircularProgressIndicator(),
+                    )
+                  : ListView.builder(
+                      controller: _scrollController,
+                      itemCount: fileList.length,
+                      itemBuilder: (_, index) {
+                        final itemModel = fileList[index];
+                        return MusicListItem(
+                          isPlaying: playIndex == index,
+                          index: index,
+                          onTap: () {
+                            setState(() {
+                              playIndex = index;
+                            });
+                            player.play(DeviceFileSource(itemModel.path));
+                          },
+                          title: itemModel.title,
+                          artist: itemModel.artist,
+                          albumArt: itemModel.albumArt,
+                          onDelete: () {
+                            musicDB.deleteMusicFile(itemModel.id);
+                            setState(() {});
+                          },
+                        );
+                      },
+                    ),
+            ),
       bottomNavigationBar: fileList.isEmpty
           ? Container()
           : CustomBottomAppBar(
@@ -228,7 +235,7 @@ class _MusicListPageState extends State<MusicListPage>
 
   someName() async {
     // request permission
-    _audioQuery.permissionsStatus;
+    // _audioQuery.permissionsStatus;
     if (await _audioQuery.permissionsStatus()) {
       // Query Audios
       List<SongModel> songs = await _audioQuery.querySongs();
@@ -236,6 +243,8 @@ class _MusicListPageState extends State<MusicListPage>
       if (songs.isEmpty) {
         return;
       }
+
+      isScanning = true;
 
       for (var song in songs) {
         // queryArtwork
@@ -254,14 +263,43 @@ class _MusicListPageState extends State<MusicListPage>
           },
         );
       }
+      isScanning = false;
       getMusicFiles();
       setState(() {});
     } else {
       // request permission
       await _audioQuery.permissionsRequest();
+      if (await _audioQuery.permissionsStatus()) {
+        // Query Audios
+        List<SongModel> songs = await _audioQuery.querySongs();
+
+        if (songs.isEmpty) {
+          return;
+        }
+        // 音乐扫描中
+        isScanning = true;
+        for (var song in songs) {
+          // queryArtwork
+          final albumArt =
+              await _audioQuery.queryArtwork(song.id, ArtworkType.AUDIO);
+          // insert to db
+          await musicDB.createMusicFile(
+            {
+              'title': song.title,
+              'artist': song.artist ?? '未知',
+              'album': song.album ?? '未知',
+              'albumArt': albumArt,
+              'path': song.data,
+              'createAt': DateTime.now().toString(),
+              'updateAt': DateTime.now().toString(),
+            },
+          );
+        }
+        // 音乐扫描结束
+        isScanning = false;
+        getMusicFiles();
+        setState(() {});
+      }
     }
-    // Query Audios
-    // List<AlbumModel> audios = await _audioQuery.queryAlbums();
-    // print(audios);
   }
 }

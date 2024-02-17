@@ -1,3 +1,6 @@
+/// @Author: kevin
+/// @Date: 2024-02-17
+/// @Description: This file is responsible for creating the MusicDb class.
 import 'package:flutter_music_player/database/database_service.dart';
 
 class MusicDb {
@@ -34,7 +37,6 @@ INSERT INTO $tableName (title, artist, album, albumArt, path, createAt, updateAt
     ]);
   }
 
-  // 添加多个文件到数据 不使用循环 先拼接好sql语句 然后一次性添加
   Future<void> createMusicFiles(List<Map<String, dynamic>> musicFiles) async {
     final database = await DatabaseService().database;
     final batch = database.batch();
